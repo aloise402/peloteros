@@ -97,7 +97,6 @@ LEAGUE_ORDER = [
     ("XxCarboriPRxx", "Athletics"),
     ("lednew__", "Rangers"),
     ("itschinoo02", "Astros"),
-    ("LaSupraaa", "Angels"),
     ("JoseAco21", "Braves"),
     ("NeGrlxs--", "Guardians"),
     ("lnsocial", "Marlins"),
@@ -508,6 +507,7 @@ def games_played_today_scl():
 
 
 # ====== FIN DEL BLOQUE ======
+
 
 
 
