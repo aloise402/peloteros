@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>legends online - Tabla & Juegos</title>
+  <!-- Sirve el CSS desde /static; asegúrate de tener static/styles.css con contenido -->
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    /* Fallback visual mínimo por si el CSS no carga */
+    body{font-family:system-ui,Arial,sans-serif;background:#0b1220;color:#e8eefc;margin:0}
+    .container{max-width:1000px;margin:0 auto;padding:24px}
+    .hidden{display:none}
+    .table-wrapper{overflow:auto;background:#121a2b;border-radius:12px;padding:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+    th{color:#9fb3d1;font-weight:600;font-size:13px;text-align:left}
+    td{font-size:14px}
+    .num{text-align:right}
+    .tag{background:rgba(77,163,255,.12);color:#cfe5ff;padding:2px 8px;border-radius:999px;font-size:12px}
+    .muted{color:#9fb3d1}
+    .pill{font-size:12px;color:#9fb3d1}
+    .games-list{list-style:none;padding:0;margin:0}
+    .games-list li{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+    #error{background:#2a0f13;border:1px solid #4b151b;color:#ffb3b8;padding:10px 12px;border-radius:8px;margin:10px 0}
+    #loading{color:#9fb3d1;margin:8px 0}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚾ Strike Latino 2</h1>
+    <p class="muted">Tabla de posiciones y juegos del día</p>
+
+    <div id="loading">Cargando datos, por favor espera…</div>
+    <div id="error" class="hidden"></div>
+    <div id="last-updated" class="muted hidden"></div>
+
+    <section id="standings-section" class="hidden">
+      <h2>🏆 Tabla de posiciones</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Equipo</th>
+              <th>Jugador</th>
+              <th class="num">Prog</th>
+              <th class="num">JJ</th>
+              <th class="num">W</th>
+              <th class="num">L</th>
+              <th class="num">Por jugar</th>
+              <th class="num">Pts</th>
+            </tr>
+          </thead>
+          <tbody id="standings-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="games-today-section" class="hidden">
+      <h2>📅 Juegos jugados hoy</h2>
+      <ul id="games-today-list" class="games-list"></ul>
+    </section>
+  </div>
+
+  <script>
+    const el = {
+      loading: document.getElementById('loading'),
+      error: document.getElementById('error'),
+      updated: document.getElementById('last-updated'),
+      standingsSection: document.getElementById('standings-section'),
+      standingsBody: document.getElementById('standings-body'),
+      gamesSection: document.getElementById('games-today-section'),
+      gamesList: document.getElementById('games-today-list')
+    };
+    const show = x => x.classList.remove('hidden');
+    const hide = x => x.classList.add('hidden');
+
+    function parseGameString(s){
+      // Convierte "Mets 3 - Mariners 0 - 07-09-2025 - 6:30 pm (hora Chile)"
+      const norm = (s||'').replace(/\s+/g,' ').trim();
+      const parts = norm.split(' - ');
+      if (parts.length >= 4) {
+        const [homePart, awayPart, datePart, timePart] = parts;
+        const splitLast = (txt) => {
+          const i = txt.lastIndexOf(' ');
+          if (i === -1) return { name: txt, score: '' };
+          return { name: txt.slice(0,i), score: txt.slice(i+1) };
+        };
+        const h = splitLast(homePart);
+        const a = splitLast(awayPart);
+        return {
+          home_team: h.name,
+          home_score: h.score,
+          away_team: a.name,
+          away_score: a.score,
+          ended_at_local: `${datePart} - ${timePart}`
+        };
+      }
+      return { raw: s };
+    }
+
+    async function loadData(){
+      hide(el.error);
+      show(el.loading);
+      try{
+        const r = await fetch('/api/full', {cache:'no-store'});
+        if(!r.ok){
+          let msg = `HTTP ${r.status}`;
+          try{ const j = await r.json(); if (j && j.error) msg = j.error; }catch(_){}
+          throw new Error(msg);
+        }
+        const data = await r.json();
+
+        // Última actualización (si tu app la añade)
+        if (data.last_updated) {
+          el.updated.textContent = `Última actualización: ${data.last_updated}`;
+          show(el.updated);
+        }
+
+        // Standings
+        el.standingsBody.innerHTML = '';
+        (data.standings || []).forEach((row, i) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${i+1}</td>
+            <td>${row.team}</td>
+            <td><span class="tag">${row.user}</span></td>
+            <td class="num">${row.scheduled}</td>
+            <td class="num">${row.played}</td>
+            <td class="num">${row.wins}</td>
+            <td class="num">${row.losses}</td>
+            <td class="num">${row.remaining}</td>
+            <td class="num">${row.points}</td>
+          `;
+          el.standingsBody.appendChild(tr);
+        });
+        show(el.standingsSection);
+
+        // Juegos de hoy (acepta strings u objetos)
+        el.gamesList.innerHTML = '';
+        const games = data.games_today || [];
+        if (games.length === 0) {
+          el.gamesList.innerHTML = `<li class="muted">No hay juegos finalizados hoy.</li>`;
+        } else {
+          games.forEach(g => {
+            let obj = g;
+            if (typeof g === 'string') obj = parseGameString(g);
+            const li = document.createElement('li');
+            if (obj.raw) {
+              li.textContent = obj.raw;
+            } else {
+              li.innerHTML = `
+                <div><strong>${obj.home_team}</strong> ${obj.home_score} - ${obj.away_score} <strong>${obj.away_team}</strong></div>
+                <div class="pill">${obj.ended_at_local}</div>
+              `;
+            }
+            el.gamesList.appendChild(li);
+          });
+        }
+        show(el.gamesSection);
+
+      }catch(e){
+        el.error.textContent = 'No se pudieron cargar los datos: ' + e.message;
+        show(el.error);
+      }finally{
+        hide(el.loading);
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
+

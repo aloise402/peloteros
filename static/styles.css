@@ -1,0 +1,145 @@
+:root {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --accent: #58a6ff;
+  --border: #30363d;
+  --card: #161b22;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 20px;
+  color: #9aa5b1;
+}
+
+/* Barra progreso */
+#progress-container {
+  width: 100%;
+  background: var(--card);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+#progress-bar {
+  height: 22px;
+  background: var(--accent);
+  text-align: center;
+  line-height: 22px;
+  color: #fff;
+  width: 0%;
+  font-size: 13px;
+  transition: width 0.2s;
+}
+
+/* Tabla */
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--card);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+thead {
+  background: #1f2635;
+}
+
+th, td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:hover {
+  background: #1e2738;
+}
+
+.team {
+  font-weight: bold;
+  font-size: 15px;   /* equipo ligeramente más grande */
+  color: #f4d03f;
+}
+.user {
+  font-size: 13px;   /* jugador más pequeño */
+  color: #a6e3ff;
+}
+
+/* Juegos de hoy */
+#games-today {
+  margin-top: 22px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+#games-today h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #cfe2ff;
+}
+
+#games-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#games-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #1c2549;
+  font-size: 14px;
+}
+
+#games-list li:last-child {
+  border-bottom: none;
+}
+
+.game-item {
+  color: #e7ecff;
+  font-family: monospace;
+}
+
+/* Utilidad */
+.hidden { display: none; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  th, td {
+    font-size: 12px;
+    padding: 6px;
+  }
+  .team {
+    font-size: 14px;
+  }
+  .user {
+    font-size: 11px;
+  }
+}

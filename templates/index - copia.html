@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Strike Latino 2 - Tabla & Juegos</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>⚾ Strike Latino 2</h1>
+    <p class="subtitle">Tabla de posiciones y juegos del día</p>
+
+    <!-- Barra de progreso -->
+    <div id="loading">
+      <p id="loading-text">Cargando datos, por favor espera…</p>
+      <div id="progress-container">
+        <div id="progress-bar">0%</div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <section id="standings-section" class="hidden">
+      <h2>🏆 Tabla de posiciones</h2>
+      <div class="table-wrapper">
+        <table id="standings-table">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Equipo</th>
+              <th>Jugador</th>
+              <th>JJ</th>
+              <th>W</th>
+              <th>L</th>
+              <th>P.Jugar</th>
+              <th>Pts</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Juegos de hoy -->
+    <section id="games-today" class="hidden">
+      <h2>📅 Juegos jugados HOY (hora Chile)</h2>
+      <ul id="games-list"></ul>
+    </section>
+
+    <!-- Errores -->
+    <div id="error" class="hidden"></div>
+  </div>
+
+  <script>
+    const bar = document.getElementById("progress-bar");
+    const loadingBox = document.getElementById("loading");
+    const loadingText = document.getElementById("loading-text");
+    const tbody = document.querySelector("#standings-table tbody");
+    const errorBox = document.getElementById("error");
+    const standingsSection = document.getElementById("standings-section");
+    const gamesTodayBox = document.getElementById("games-today");
+    const gamesList = document.getElementById("games-list");
+
+    let percent = 0;
+    let keepTicking = true;
+    let altInterval = null;
+
+    function setProgress(p, text) {
+      percent = Math.max(0, Math.min(100, Math.floor(p)));
+      bar.style.width = percent + "%";
+      bar.textContent = percent + "%";
+      if (text) loadingText.textContent = text;
+
+      // Cuando llega a 99%, comenzar a alternar mensajes
+      if (percent === 99 && !altInterval) {
+        let toggle = false;
+        altInterval = setInterval(() => {
+          loadingText.textContent = toggle
+            ? "Consultando servidor..."
+            : "Falta poco, ten paciencia...";
+          toggle = !toggle;
+        }, 2000);
+      }
+
+      // Si llega a 100%, detener alternancia
+      if (percent === 100 && altInterval) {
+        clearInterval(altInterval);
+        altInterval = null;
+      }
+    }
+
+    const ticker = setInterval(() => {
+      if (!keepTicking) return;
+      if (percent < 99) setProgress(percent + 1);
+    }, 120);
+
+    async function loadData() {
+      try {
+        setProgress(5, "Consultando servidor…");
+
+        const res = await fetch("/api/full", { cache: "no-store" });
+        if (!res.ok) throw new Error("Respuesta HTTP " + res.status);
+
+        setProgress(50, "Procesando datos…");
+        const data = await res.json();
+
+        // Tabla de posiciones
+        tbody.innerHTML = "";
+        data.standings.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td><span class="team">${r.team}</span></td>
+            <td><span class="user">${r.user}</span></td>
+            <td>${r.played}</td>
+            <td>${r.wins}</td>
+            <td>${r.losses}</td>
+            <td>${r.remaining}</td>
+            <td><strong>${r.points}</strong></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Juegos de hoy
+        gamesList.innerHTML = "";
+        if (data.games_today && data.games_today.length > 0) {
+          data.games_today.forEach(g => {
+            const li = document.createElement("li");
+            li.innerHTML = `<span class="game-item">${g}</span>`;
+            gamesList.appendChild(li);
+          });
+          gamesTodayBox.classList.remove("hidden");
+        } else {
+          const li = document.createElement("li");
+          li.textContent = "— No hay registros hoy —";
+          gamesList.appendChild(li);
+          gamesTodayBox.classList.remove("hidden");
+        }
+
+        // Finalizar
+        keepTicking = false;
+        clearInterval(ticker);
+        setProgress(100, "Completado");
+        setTimeout(() => {
+          loadingBox.style.display = "none";
+          standingsSection.classList.remove("hidden");
+        }, 200);
+
+      } catch (err) {
+        keepTicking = false;
+        clearInterval(ticker);
+        setProgress(100, "Error");
+        errorBox.classList.remove("hidden");
+        errorBox.textContent = "No se pudieron cargar los datos: " + err.message;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
