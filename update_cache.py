@@ -1,67 +1,45 @@
-# update_cache.py
-# Genera el cache usando compute_rows() y games_played_today_scl() del módulo standings_*
-import json, os, sys, time
+from flask import Flask, render_template, jsonify
+import json
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-# --- Import robusto del módulo principal ---
-try:
-    import standings_cascade_points_desc as standings
-except Exception:
-    import standings_cascade_points as standings  # fallback si el nombre no tiene _desc
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CACHE_FILE = os.path.join(BASE_DIR, "standings_cache.json")
+app = Flask(__name__)
+CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "standings_cache.json")
 SCL = ZoneInfo("America/Santiago")
 
-def update_data_cache():
-    ts = datetime.now(SCL).strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{ts}] Iniciando actualización del cache...")
+@app.route("/")
+def index():
+    # Si no usas plantilla, puedes devolver un JSON o una página simple
+    if os.path.exists(os.path.join(os.path.dirname(__file__), "templates", "index.html")):
+        return render_template("index.html")
+    return jsonify({"ok": True, "msg": "Servicio activo"}), 200
+
+@app.get("/health")
+def health():
+    return {"ok": True}, 200
+
+@app.route("/api/full")
+def api_full():
+    if not os.path.exists(CACHE_FILE):
+        return jsonify({"error": "Data not available yet, please try again in a few minutes."}), 503
 
     try:
-        # Validaciones mínimas para que el error sea claro si faltara algo
-        if not hasattr(standings, "compute_rows"):
-            raise AttributeError("El módulo no define compute_rows()")
-        if not hasattr(standings, "games_played_today_scl"):
-            raise AttributeError("El módulo no define games_played_today_scl()")
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-        # 1) Tabla
-        rows = standings.compute_rows()
+        # Añade marca de tiempo de última modificación (hora Chile)
+        try:
+            mtime = os.path.getmtime(CACHE_FILE)
+            data["last_updated"] = datetime.fromtimestamp(mtime, tz=SCL).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            data.setdefault("last_updated", None)
 
-        # 2) Juegos de HOY (hora Chile)
-        games_today = standings.games_played_today_scl()
-
-        # 3) Escribir cache (sólo lo que necesita la web)
-        payload = {
-            "standings": rows,
-            "games_today": games_today,
-            "last_updated": ts
-        }
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-
-        print("Actualización completada exitosamente.")
-        return True
+        return jsonify(data)
     except Exception as e:
-        print(f"ERROR durante la actualización del cache: {e}")
-        return False
-
-def _run_once_then_exit():
-    ok = update_data_cache()
-    sys.exit(0 if ok else 1)
+        return jsonify({"error": f"Failed to read cached data: {e}"}), 500
 
 if __name__ == "__main__":
-    # Modo 1: una sola pasada (útil en Render antes de levantar la web)
-    if "--once" in sys.argv or os.getenv("RUN_ONCE") == "1":
-        _run_once_then_exit()
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")), debug=True)
 
-    # Modo 2: bucle (local/worker)
-    UPDATE_INTERVAL_SECONDS = int(os.getenv("UPDATE_INTERVAL_SECONDS", "300"))  # 5 min
-    while True:
-        update_data_cache()
-        print(f"Esperando {UPDATE_INTERVAL_SECONDS} segundos para la próxima actualización...")
-        try:
-            time.sleep(UPDATE_INTERVAL_SECONDS)
-        except KeyboardInterrupt:
-            print("Detenido por el usuario.")
-            break
+
