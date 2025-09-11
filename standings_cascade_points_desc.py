@@ -124,28 +124,28 @@ FETCH_ALIASES = {
 
 # ===== Ajustes algebraicos por equipo (resets W/L) =====
 TEAM_RECORD_ADJUSTMENTS = {
-    "Pirates": (0, 0),
-    "Twins": (0, 0),
-    "Diamondbacks": (0, 0),
-    "Dodgers": (0, 0),
-    "Rangers": (0, 0),
-    "Red Sox": (0, 0),
-    "Royals": (0, 0),
-    "Tigers": (0, 0),
-    "Braves": (0, 0),
-    "Brewers": (0, 0),
-    "Cubs": (0, 0),
-    "Astros": (0, 0),
-    "Padres": (0, 0),
-    "Orioles": (0, 0),
-    "Yankees": (0, 0),
-    "White Sox": (0, 0),
-    "Nationals": (0, 0),
-    "Guardians": (0, 0),
-    "Mets": (0, 0),
-    "Marlins": (0, 0),
-    "Athletics": (0, 0),
-    "Cardinals": (0, 0),
+    "Pirates": (22, 3),
+    "Twins": (9, 18),
+    "Diamondbacks": (13, 5),
+    "Dodgers": (12, 4),
+    "Rangers": (6, 17),
+    "Red Sox": (7, 17),
+    "Royals": (9, 9),
+    "Tigers": (9, 7),
+    "Braves": (8, 2),
+    "Brewers": (4, 9),
+    "Cubs": (6, 4),
+    "Astros": (5, 1),
+    "Padres": (4, 7),
+    "Orioles": (3, 7),
+    "Yankees": (5, 5),
+    "White Sox": (2, 10),
+    "Nationals": (4, 2),
+    "Guardians": (2, 5),
+    "Mets": (2, 1),
+    "Marlins": (2, 1),
+    "Athletics": (1, 0),
+    "Cardinals": (0, 2),
 }
 
 # ===== Ajustes manuales de PUNTOS (desconexiones, sanciones, bonificaciones) =====
@@ -508,6 +508,7 @@ def games_played_today_scl():
 
 
 # ====== FIN DEL BLOQUE ======
+
 
 
 
