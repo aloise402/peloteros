@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Peloteros20 online - Tabla & Juegos</title>
-  <!-- Sirve el CSS desde /static; asegúrate de tener static/styles.css con contenido -->
+  <title>PELOTEROS - Tabla & Juegos</title>
   <link rel="stylesheet" href="/static/styles.css" />
   <style>
-    /* Fallback visual mínimo por si el CSS no carga */
+    /* Fallback visual mínimo */
     body{font-family:system-ui,Arial,sans-serif;background:#0b1220;color:#e8eefc;margin:0}
     .container{max-width:1000px;margin:0 auto;padding:24px}
     .hidden{display:none}
@@ -28,7 +27,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>⚾ PELOTEROS 20</h1>
+    <h1>⚾ PELOTEROS</h1>
     <p class="muted">Tabla de posiciones y juegos del día</p>
 
     <div id="loading">Cargando datos, por favor espera…</div>
@@ -37,6 +36,14 @@
 
     <section id="standings-section" class="hidden">
       <h2>🏆 Tabla de posiciones</h2>
+
+      <!-- Leyenda de zonas -->
+      <div class="legend">
+        <span class="legend-item postemporada">Postemporada (1-6)</span>
+        <span class="legend-item wildcard">Wild Card (7-10)</span>
+        <span class="legend-item aaa">AAA (11-14)</span>
+      </div>
+
       <div class="table-wrapper">
         <table>
           <thead>
@@ -121,7 +128,7 @@
         (data.standings || []).forEach((row, i) => {
           const tr = document.createElement('tr');
 
-          // Zonas especiales
+          // Zonas
           if (i < 6) {
             tr.classList.add('postemporada');
           } else if (i < 10) {
@@ -180,4 +187,3 @@
   </script>
 </body>
 </html>
-
