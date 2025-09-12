@@ -82,11 +82,11 @@ tr:hover {
 
 .team {
   font-weight: bold;
-  font-size: 15px;   /* equipo ligeramente más grande */
+  font-size: 15px;
   color: #f4d03f;
 }
 .user {
-  font-size: 13px;   /* jugador más pequeño */
+  font-size: 13px;
   color: #a6e3ff;
 }
 
@@ -125,6 +125,33 @@ tr:hover {
 .game-item {
   color: #e7ecff;
   font-family: monospace;
+}
+
+/* ========================= */
+/* Diferenciación por zonas  */
+/* ========================= */
+
+/* Postemporada (1-6) */
+tr.postemporada {
+  background-color: #113d1f;   /* verde oscuro */
+  color: #a6ffb0;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+/* Wild Card (7-10) */
+tr.wildcard {
+  background-color: #3a2f00;   /* dorado oscuro */
+  color: #ffd966;
+  font-size: 14.5px;
+}
+
+/* AAA (11-14) */
+tr.aaa {
+  background-color: #3b0d0d;   /* rojo oscuro */
+  color: #ff9999;
+  font-style: italic;
+  font-size: 14px;
 }
 
 /* Utilidad */
