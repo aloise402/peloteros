@@ -126,14 +126,14 @@ TEAM_RECORD_ADJUSTMENTS = {
     "Pirates": (22, 3),
     "Twins": (9, 18),
     "Diamondbacks": (13, 5),
-    "Dodgers": (12, 4),
+    "Dodgers": (13, 3),
     "Rangers": (6, 17),
     "Red Sox": (7, 17),
     "Royals": (9, 9),
     "Tigers": (9, 7),
     "Braves": (8, 2),
     "Brewers": (4, 9),
-    "Cubs": (6, 4),
+    "Cubs": (5, 5),
     "Astros": (5, 1),
     "Padres": (4, 7),
     "Orioles": (3, 7),
@@ -507,6 +507,7 @@ def games_played_today_scl():
 
 
 # ====== FIN DEL BLOQUE ======
+
 
 
 
