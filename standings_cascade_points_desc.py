@@ -69,7 +69,7 @@ API = "https://mlb25.theshow.com/apis/game_history.json"
 PLATFORM = "psn"
 MODE = "LEAGUE"
 SINCE = datetime(2025, 9, 11)
-PAGES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)   # <-- SOLO p1 y p2, como validaste
+PAGES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12,13,14)   # <-- SOLO p1 y p2, como validaste
 TIMEOUT = 20
 RETRIES = 2
 
