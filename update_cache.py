@@ -9,20 +9,22 @@ from zoneinfo import ZoneInfo
 try:
     import standings_cascade_points_desc as standings
 except Exception:
-    import standings_cascade_points as standings  # fallback si el nombre no tiene _desc
+    import standings_cascade_points as standings  # fallback si no existe _desc
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_FILE = os.path.join(BASE_DIR, "standings_cache.json")
-SCL = ZoneInfo("America/Santiago")
+
+# 👉 Ahora usamos la hora del Este (Miami)
+ET = ZoneInfo("America/New_York")
 
 # --- Exclusiones/Ediciones manuales para 'games_today' (lista de strings) ---
-EXCLUDE_STRINGS = set()  # ejemplo: {"Yankees 0 - 0 Mets - 08-09-2025 - 9:40 pm (hora Chile)"}
+EXCLUDE_STRINGS = set()  # ejemplo: {"Yankees 0 - 0 Mets - 08-09-2025 - 9:40 pm (hora ET)"}
 
 # Reglas de reemplazo: si 'match_contains' está en el string, se reemplaza por 'replace_with';
 # usa replace_with=None si quieres borrar el registro.
 EDIT_RULES_STR = [
     # ejemplo:
-     {"match_contains": "Dodgers 3 - Brewers 4 - 17-09-2025 - 12:23", "replace_with": "***"},
+    # {"match_contains": "Dodgers 3 - 4 Brewers", "replace_with": "***"},
 ]
 
 def _should_exclude_string(g_str: str) -> bool:
@@ -36,7 +38,7 @@ def _apply_edit_rules_string(g_str: str):
     return g_str
 
 def update_data_cache():
-    ts = datetime.now(SCL).strftime('%Y-%m-%d %H:%M:%S')
+    ts = datetime.now(ET).strftime('%Y-%m-%d %H:%M:%S')
     print(f"[{ts}] Iniciando actualización del cache...")
 
     try:
@@ -48,10 +50,10 @@ def update_data_cache():
         # 1) Tabla
         rows = standings.compute_rows()
 
-        # 2) Juegos de HOY (hora Chile)
+        # 2) Juegos de HOY
         games_today = standings.games_played_today_scl()
 
-        # 3) Aplicar exclusiones y ediciones manuales (lista de strings)
+        # 3) Aplicar exclusiones y ediciones manuales
         new_games = []
         for g in games_today:
             if isinstance(g, str):
@@ -61,7 +63,6 @@ def update_data_cache():
                 if edited is not None:
                     new_games.append(edited)
             else:
-                # Si viniera un objeto (no esperado), lo dejamos pasar tal cual
                 new_games.append(g)
         games_today = new_games
 
@@ -69,7 +70,7 @@ def update_data_cache():
         payload = {
             "standings": rows,
             "games_today": games_today,
-            "last_updated": ts
+            "last_updated": ts + " (hora ET)"  # 👈 marcamos explícitamente
         }
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     if "--once" in sys.argv or os.getenv("RUN_ONCE") == "1":
         _run_once_then_exit()
 
-    # Modo 2: bucle (local/worker)
+    # Modo 2: bucle
     UPDATE_INTERVAL_SECONDS = int(os.getenv("UPDATE_INTERVAL_SECONDS", "300"))  # 5 min
     while True:
         update_data_cache()
@@ -99,3 +100,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("Detenido por el usuario.")
             break
+
