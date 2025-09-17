@@ -54,20 +54,20 @@ FETCH_ALIASES = {
 
 # ===== Ajustes manuales =====
 TEAM_RECORD_ADJUSTMENTS = {
-    "Pirates": (26, 4),
+    "Pirates": (28, 4),
     "Twins": (11, 22),
     "Diamondbacks": (16, 6),
-    "Dodgers": (20, 8),
-    "Rangers": (8, 22),
+    "Dodgers": (21, 9),
+    "Rangers": (10, 24),
     "Red Sox": (9, 21),
     "Royals": (15, 10),
     "Tigers": (14, 10),
     "Braves": (12, 6),
     "Brewers": (9, 10),
-    "Cubs": (8, 5),
+    "Cubs": (10, 5),
     "Astros": (7, 4),
     "Padres": (5, 10),
-    "Orioles": (5, 13),
+    "Orioles": (6, 18),
     "Yankees": (8, 6),
     "White Sox": (2, 16),
     "Nationals": (5, 3),
@@ -218,4 +218,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
