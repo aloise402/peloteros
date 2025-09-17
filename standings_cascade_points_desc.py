@@ -16,7 +16,7 @@ LEAGUE_MODE = "LEAGUE"
 SINCE = datetime(2025, 9, 11)
 
 # 👇 Escaneo de 20 páginas por jugador
-PAGES = tuple(range(1, 2))  # (1..20)
+PAGES = tuple(range(1, 30))  # (1..20)
 TIMEOUT = 20
 RETRIES = 2
 
@@ -301,3 +301,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
