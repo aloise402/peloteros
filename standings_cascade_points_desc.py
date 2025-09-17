@@ -13,10 +13,10 @@ GAMES_TODAY_ONLINE = True    # True = juegos de hoy desde API (en vivo)
 API = "https://mlb25.theshow.com/apis/game_history.json"
 PLATFORM = "psn"
 LEAGUE_MODE = "LEAGUE"
-SINCE = datetime(2025, 9, 11)
+SINCE = datetime(2025, 9, 17)
 
 # 👇 Escaneo de 20 páginas por jugador
-PAGES = tuple(range(1, 30))  # (1..20)
+PAGES = tuple(range(1, 2))  # (1..20)
 TIMEOUT = 20
 RETRIES = 2
 
@@ -54,28 +54,26 @@ FETCH_ALIASES = {
 
 # ===== Ajustes manuales =====
 TEAM_RECORD_ADJUSTMENTS = {
-    "Pirates": (22, 3),
-    "Twins": (9, 18),
-    "Diamondbacks": (13, 5),
-    "Dodgers": (13, 3),
-    "Rangers": (6, 17),
-    "Red Sox": (7, 17),
-    "Royals": (9, 9),
-    "Tigers": (9, 7),
-    "Braves": (8, 2),
-    "Brewers": (4, 9),
-    "Cubs": (5, 5),
-    "Astros": (5, 1),
-    "Padres": (4, 7),
-    "Orioles": (3, 7),
-    "Yankees": (5, 5),
-    "White Sox": (2, 10),
-    "Nationals": (4, 2),
-    "Guardians": (2, 5),
-    "Mets": (2, 1),
-    "Marlins": (2, 1),
-    "Athletics": (1, 0),
-    "Cardinals": (0, 2),
+    "Pirates": (26, 4),
+    "Twins": (11, 22),
+    "Diamondbacks": (16, 6),
+    "Dodgers": (20, 8),
+    "Rangers": (8, 22),
+    "Red Sox": (9, 21),
+    "Royals": (15, 10),
+    "Tigers": (14, 10),
+    "Braves": (12, 6),
+    "Brewers": (9, 10),
+    "Cubs": (8, 5),
+    "Astros": (7, 4),
+    "Padres": (5, 10),
+    "Orioles": (5, 13),
+    "Yankees": (8, 6),
+    "White Sox": (2, 16),
+    "Nationals": (5, 3),
+    "Marlins": (5, 4),
+
+
 }
 TEAM_POINT_ADJUSTMENTS = {
     # ejemplo: "Yankees": (3, "Bono disciplina"),
@@ -301,4 +299,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
