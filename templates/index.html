@@ -5,25 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PELOTEROS - Tabla & Juegos</title>
   <link rel="stylesheet" href="/static/styles.css" />
-  <style>
-    /* Fallback visual mínimo */
-    body{font-family:system-ui,Arial,sans-serif;background:#0b1220;color:#e8eefc;margin:0}
-    .container{max-width:1000px;margin:0 auto;padding:24px}
-    .hidden{display:none}
-    .table-wrapper{overflow:auto;background:#121a2b;border-radius:12px;padding:12px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
-    th{color:#9fb3d1;font-weight:600;font-size:13px;text-align:left}
-    td{font-size:14px}
-    .num{text-align:right}
-    .tag{background:rgba(77,163,255,.12);color:#cfe5ff;padding:2px 8px;border-radius:999px;font-size:12px}
-    .muted{color:#9fb3d1}
-    .pill{font-size:12px;color:#9fb3d1}
-    .games-list{list-style:none;padding:0;margin:0}
-    .games-list li{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
-    #error{background:#2a0f13;border:1px solid #4b151b;color:#ffb3b8;padding:10px 12px;border-radius:8px;margin:10px 0}
-    #loading{color:#9fb3d1;margin:8px 0}
-  </style>
 </head>
 <body>
   <div class="container">
@@ -37,7 +18,6 @@
     <section id="standings-section" class="hidden">
       <h2>🏆 Tabla de posiciones</h2>
 
-      <!-- Leyenda de zonas -->
       <div class="legend">
         <span class="legend-item postemporada">Postemporada (1-6)</span>
         <span class="legend-item wildcard">Wild Card (7-10)</span>
@@ -57,10 +37,27 @@
               <th class="num">L</th>
               <th class="num">Por jugar</th>
               <th class="num">Pts</th>
+              <th class="num">K</th>
             </tr>
           </thead>
           <tbody id="standings-body"></tbody>
         </table>
+        <div class="legend-footnote">
+  <p><strong>K</strong> = Juegos que faltan para cumplir con al menos <strong>12 juegos jugados</strong> (<span style="color:#4caf50;font-weight:bold;">Participación LEGAL</span>)</p>
+  <hr style="border:0;border-top:1px solid #555;margin:8px 0;">
+  <p><strong>Equipos que no continuaron jugando la liga:</strong></p>
+  <ul class="retired-list">
+    <li><span class="retired">Reds</span> (Se retira antes de empezar)</li>
+    <li><span class="retired">Rockies</span> (Se retiró)</li>
+    <li><span class="retired">Rays</span> (Se retiró)</li>
+    <li><span class="retired">Angels</span> (Se retiró)</li>
+    <li><span class="retired">Cardinals</span> (Se retirò por irresponsable)</li>
+    <li><span class="retired">Athletics</span> (Se retirò por irresponsable)</li>
+    <li><span class="retired">Guardians</span> (Se retirò por estudios)</li>
+    <li><span class="retired">Mets</span> (Se retira por ordenes del jefe)</li>
+  </ul>
+</div>
+
       </div>
     </section>
 
@@ -129,13 +126,9 @@
           const tr = document.createElement('tr');
 
           // Zonas
-          if (i < 6) {
-            tr.classList.add('postemporada');
-          } else if (i < 10) {
-            tr.classList.add('wildcard');
-          } else if (i < 14) {
-            tr.classList.add('aaa');
-          }
+          if (i < 6) tr.classList.add('postemporada');
+          else if (i < 10) tr.classList.add('wildcard');
+          else if (i < 14) tr.classList.add('aaa');
 
           tr.innerHTML = `
             <td>${i+1}</td>
@@ -147,6 +140,7 @@
             <td class="num">${row.losses}</td>
             <td class="num">${row.remaining}</td>
             <td class="num">${row.points}</td>
+            <td class="num ${row.K > 0 ? 'k-warning' : ''}">${row.K}</td>
           `;
           el.standingsBody.appendChild(tr);
         });
