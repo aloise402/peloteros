@@ -375,7 +375,10 @@ def main():
         for i, s in enumerate(games_today, 1):
             print(f"{i:>2}- {s}")
 
-    print(f"\nÚltima actualización: {datetime.now():%Y-%m-%d %H:%M:%S}")
+    from datetime import timezone, timedelta
+ET = timezone(timedelta(hours=-4))
+print(f"\nÚltima actualización: {datetime.now(ET):%Y-%m-%d %H:%M:%S} EEUU-EST")
+
     print(f"JSON generados en: .\\{DUMP_DIR}\\")
     print("  - standings.json")
     print("  - games_today.json")
