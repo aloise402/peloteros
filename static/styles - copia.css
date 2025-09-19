@@ -165,16 +165,3 @@ tr.aaa,
     font-size: 11px;
   }
 }
-
-
-
-
-/* ========================= */
-/* Equipos retirados         */
-/* ========================= */
-table.retired th,
-table.retired td {
-  background-color: #c00; /* rojo fuerte */
-  color: #fff;
-}
-
