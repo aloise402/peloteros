@@ -125,7 +125,7 @@ TEAM_RECORD_ADJUSTMENTS = {
     "Dodgers": (24, 8),
     "Rangers": (9, 22),
     "Red Sox": (9, 22),
-    "Royals": (16, 9),
+    "Royals": (15, 10),
     "Tigers": (14, 10),
     "Braves": (12, 6),
     "Brewers": (9, 10),
