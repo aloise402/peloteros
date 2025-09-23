@@ -1,6 +1,8 @@
 import requests, time, re, os, json
 from datetime import datetime
+
 MODE = "ONLINE"
+
 CFG = {
     "DEBUG": dict(
         PRINT_DETAILS=False,
@@ -19,46 +21,55 @@ CFG = {
         DAY_WINDOW_MODE="sports",
     ),
 }
+
 conf = CFG.get(MODE, CFG["DEBUG"])
 PRINT_DETAILS = conf["PRINT_DETAILS"]
+
 try:
     PRINT_CAPTURE_SUMMARY
 except NameError:
     PRINT_CAPTURE_SUMMARY = conf["PRINT_CAPTURE_SUMMARY"]
 else:
     PRINT_CAPTURE_SUMMARY = conf["PRINT_CAPTURE_SUMMARY"]
+
 try:
     PRINT_CAPTURE_LIST
 except NameError:
     PRINT_CAPTURE_LIST = conf["PRINT_CAPTURE_LIST"]
 else:
     PRINT_CAPTURE_LIST = conf["PRINT_CAPTURE_LIST"]
+
 try:
     DUMP_ENABLED
 except NameError:
     DUMP_ENABLED = conf["DUMP_ENABLED"]
 else:
     DUMP_ENABLED = conf["DUMP_ENABLED"]
+
 try:
     STOP_AFTER_N
 except NameError:
     STOP_AFTER_N = conf["STOP_AFTER_N"]
 else:
     STOP_AFTER_N = conf["STOP_AFTER_N"]
+
 DAY_WINDOW_MODE = conf["DAY_WINDOW_MODE"]
+
 API = "https://mlb25.theshow.com/apis/game_history.json"
 PLATFORM = "psn"
 MODE = "LEAGUE"
 SINCE = datetime(2025, 9, 19)
-PAGES = (1, 11)
+PAGES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 TIMEOUT = 20
 RETRIES = 2
+
 PRINT_DETAILS = False
 STOP_AFTER_N = None
 DUMP_ENABLED = True
 DUMP_DIR = "out"
 PRINT_CAPTURE_SUMMARY = True
 PRINT_CAPTURE_LIST = False
+
 LEAGUE_ORDER = [
     ("mlbsonoman", "Orioles"),
     ("AV777", "Red Sox"),
@@ -79,6 +90,7 @@ LEAGUE_ORDER = [
     ("Mayolito7", "Dodgers"),
     ("Juanbrachog", "Padres"),
 ]
+
 FETCH_ALIASES = {
     "AV777": ["StrikerVJ"],
     "MR TRAMPA PR": ["BENDITOPA"],
@@ -87,6 +99,7 @@ FETCH_ALIASES = {
     "X2KDUDE": ["Xx2kdudexX8466"],
     "Francoxico": ["Xxbandiffft", "XxBandido15xX"],
 }
+
 TEAM_RECORD_ADJUSTMENTS = {
     "Pirates": (27, 4),
     "Twins": (11, 22),
@@ -111,17 +124,21 @@ TEAM_RECORD_ADJUSTMENTS = {
     "Athletics": (1, 0),
     "Cardinals": (0, 2),
 }
-TEAM_POINT_ADJUSTMENTS = {
-}
+
+TEAM_POINT_ADJUSTMENTS = {}
+
 LEAGUE_USERS = {u for (u, _t) in LEAGUE_ORDER}
 for base, alts in FETCH_ALIASES.items():
     LEAGUE_USERS.add(base)
     LEAGUE_USERS.update(alts)
 LEAGUE_USERS.update({"AiramReynoso_", "Yosoyreynoso_"})
 LEAGUE_USERS_NORM = {u.lower() for u in LEAGUE_USERS}
+
 BXX_RE = re.compile(r"\^(b\d+)\^", flags=re.IGNORECASE)
+
 def _safe_name(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", s or "")
+
 def _dump_json(filename: str, data):
     if not DUMP_ENABLED:
         return
@@ -130,11 +147,14 @@ def _dump_json(filename: str, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     return path
+
 def normalize_user_for_compare(raw: str) -> str:
     if not raw: return ""
     return BXX_RE.sub("", raw).strip().lower()
+
 def is_cpu(raw: str) -> bool:
     return normalize_user_for_compare(raw) == "cpu"
+
 def parse_date(s: str):
     for fmt in ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M"):
         try:
@@ -142,6 +162,7 @@ def parse_date(s: str):
         except:
             pass
     return None
+
 def fetch_page(username: str, page: int):
     params = {"username": username, "platform": PLATFORM, "page": page}
     last = None
@@ -155,6 +176,7 @@ def fetch_page(username: str, page: int):
             time.sleep(0.4)
     print(f"[WARN] {username} p{page} sin datos ({last})")
     return []
+
 def dedup_by_id(gs):
     seen = set(); out = []
     for g in gs:
@@ -165,8 +187,10 @@ def dedup_by_id(gs):
             seen.add(gid)
         out.append(g)
     return out
+
 def norm_team(s: str) -> str:
     return (s or "").strip().lower()
+
 def compute_team_record_for_user(username_exact: str, team_name: str):
     pages_raw = []
     usernames_to_fetch = [username_exact] + FETCH_ALIASES.get(username_exact, [])
@@ -248,6 +272,7 @@ def compute_team_record_for_user(username_exact: str, team_name: str):
         "points_reason": pts_reason,
         "detail": detail_lines,
     }
+
 def main():
     os.makedirs(DUMP_DIR, exist_ok=True)
     take = len(LEAGUE_ORDER) if STOP_AFTER_N is None else min(STOP_AFTER_N, len(LEAGUE_ORDER))
@@ -293,24 +318,20 @@ def main():
     print("  - standings.json")
     print("  - games_today.json")
     print("  - <usuario>_raw.json / _dedup.json / _considered.json")
+
 if __name__ == "__main__":
     main()
+
 from zoneinfo import ZoneInfo
 from datetime import datetime
+
 def compute_rows():
-    """
-    Devuelve la lista completa de filas de la tabla.
-    Intenta detectar una función por-equipo existente.
-    """
     func = globals().get("compute_team_record_for_user") \
         or globals().get("compute_team_record") \
         or globals().get("build_team_row") \
         or globals().get("team_row_for_user")
     if not func:
-        raise RuntimeError(
-            "No encuentro una función para construir filas por equipo. "
-            "Define compute_team_record_for_user(user, team) o compute_team_record(user, team)."
-        )
+        raise RuntimeError("No encuentro una función para construir filas por equipo.")
     if "LEAGUE_ORDER" not in globals():
         raise RuntimeError("LEAGUE_ORDER no existe en standings_cascade_points_desc.py")
     rows = []
@@ -318,15 +339,8 @@ def compute_rows():
         rows.append(func(user_exact, team_name))
     rows.sort(key=lambda r: (-r.get("points", 0), -r.get("wins", 0), r.get("losses", 0)))
     return rows
+
 def games_played_today_scl():
-    """
-    Lista juegos del DÍA (America/Santiago) en formato:
-      'Yankees 1 - Brewers 2  - 30-08-2025 - 3:28 pm (hora Chile)'
-    Mejoras:
-      - Deduplicación por id y también por (equipos, runs, pitcher_info).
-      - Si la fecha viene sin tz, se asume UTC y se convierte a America/Santiago.
-      - Se requiere que AMBOS participantes pertenezcan a la liga.
-    """
     tz_scl = ZoneInfo("America/Santiago")
     tz_utc = ZoneInfo("UTC")
     today_local = datetime.now(tz_scl).date()
@@ -337,6 +351,7 @@ def games_played_today_scl():
     seen_ids = set()
     seen_keys = set()
     items = []
+    valid_teams = {team for (_user, team) in LEAGUE_ORDER}  # NUEVO FILTRO
     for g in dedup_by_id(all_pages):
         if (g.get("game_mode") or "").strip().upper() != MODE:
             continue
@@ -354,11 +369,14 @@ def games_played_today_scl():
         a_norm = normalize_user_for_compare(away_name_raw)
         if not (h_norm in LEAGUE_USERS_NORM and a_norm in LEAGUE_USERS_NORM):
             continue
+        home = (g.get("home_full_name") or "").strip()
+        away = (g.get("away_full_name") or "").strip()
+        # 🔒 Validar que ambos equipos pertenezcan a la liga
+        if home not in valid_teams or away not in valid_teams:
+            continue
         gid = str(g.get("id") or "")
         if gid and gid in seen_ids:
             continue
-        home = (g.get("home_full_name") or "").strip()
-        away = (g.get("away_full_name") or "").strip()
         hr = str(g.get("home_runs") or "0")
         ar = str(g.get("away_runs") or "0")
         pitcher_info = (g.get("display_pitcher_info") or "").strip()
