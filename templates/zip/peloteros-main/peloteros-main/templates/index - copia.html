@@ -6,6 +6,7 @@
   <title>PELOTEROS - Tabla & Juegos</title>
   <link rel="stylesheet" href="/static/styles.css" />
   <style>
+    /* Fallback visual mínimo */
     body{font-family:system-ui,Arial,sans-serif;background:#0b1220;color:#e8eefc;margin:0}
     .container{max-width:1000px;margin:0 auto;padding:24px}
     .hidden{display:none}
@@ -27,7 +28,7 @@
 <body>
   <div class="container">
     <h1>⚾ PELOTEROS</h1>
-    <p class="muted">Tabla de posiciones y juegos de postemporada</p>
+    <p class="muted">Tabla de posiciones y juegos del día</p>
 
     <div id="loading">Cargando datos, por favor espera…</div>
     <div id="error" class="hidden"></div>
@@ -36,10 +37,11 @@
     <section id="standings-section" class="hidden">
       <h2>🏆 Tabla de posiciones</h2>
 
+      <!-- Leyenda de zonas -->
       <div class="legend">
         <span class="legend-item postemporada">Postemporada (1-6)</span>
         <span class="legend-item wildcard">Wild Card (7-10)</span>
-        <span class="legend-item aaa">AAA (11-12)</span>
+        <span class="legend-item aaa">AAA (11-14)</span>
       </div>
 
       <div class="table-wrapper">
@@ -67,7 +69,7 @@
     </section>
 
     <section id="games-today-section" class="hidden">
-      <h2>📅 Juegos de postemporada (jugados)</h2>
+      <h2>📅 Juegos jugados hoy</h2>
       <ul id="games-today-list" class="games-list"></ul>
     </section>
   </div>
@@ -129,9 +131,15 @@
         el.standingsBody.innerHTML = '';
         (data.standings || []).forEach((row, i) => {
           const tr = document.createElement('tr');
-          if (i < 6) tr.classList.add('postemporada');
-          else if (i < 10) tr.classList.add('wildcard');
-          else if (i < 12) tr.classList.add('aaa');
+
+          // Zonas
+          if (i < 6) {
+            tr.classList.add('postemporada');
+          } else if (i < 10) {
+            tr.classList.add('wildcard');
+          } else if (i < 14) {
+            tr.classList.add('aaa');
+          }
 
           tr.innerHTML = `
             <td>${i+1}</td>
@@ -149,11 +157,11 @@
         });
         show(el.standingsSection);
 
-        // Juegos postemporada
+        // Juegos de hoy
         el.gamesList.innerHTML = '';
         const games = data.games_today || [];
         if (games.length === 0) {
-          el.gamesList.innerHTML = `<li class="muted">No hay juegos de postemporada registrados aún.</li>`;
+          el.gamesList.innerHTML = `<li class="muted">No hay juegos finalizados hoy.</li>`;
         } else {
           games.forEach(g => {
             let obj = g;

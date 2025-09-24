@@ -1,0 +1,180 @@
+:root {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --accent: #58a6ff;
+  --border: #30363d;
+  --card: #161b22;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 20px;
+  color: #9aa5b1;
+}
+
+/* Tabla */
+.table-wrapper {
+  overflow-x: auto;
+  background: var(--card);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+thead {
+  background: #1f2635;
+}
+
+th, td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:hover {
+  background: #1e2738;
+}
+
+.team {
+  font-weight: bold;
+  font-size: 15px;
+  color: #f4d03f;
+}
+.user {
+  font-size: 13px;
+  color: #a6e3ff;
+}
+
+/* ========================= */
+/* Leyenda de zonas          */
+/* ========================= */
+.legend {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  justify-content: center;
+  font-size: 13px;
+}
+.legend-item {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+/* Postemporada (1-6) */
+tr.postemporada,
+.legend-item.postemporada {
+  background-color: #113d1f;
+  color: #a6ffb0;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+/* Wild Card (7-10) */
+tr.wildcard,
+.legend-item.wildcard {
+  background-color: #3a2f00;
+  color: #ffd966;
+  font-size: 14.5px;
+}
+
+/* AAA (11-14) */
+tr.aaa,
+.legend-item.aaa {
+  background-color: #3b0d0d;
+  color: #ff9999;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Juegos de hoy */
+#games-today {
+  margin-top: 22px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+#games-today h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #cfe2ff;
+}
+
+#games-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#games-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #1c2549;
+  font-size: 14px;
+}
+
+#games-list li:last-child {
+  border-bottom: none;
+}
+
+.game-item {
+  color: #e7ecff;
+  font-family: monospace;
+}
+
+/* Utilidad */
+.hidden { display: none; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  th, td {
+    font-size: 12px;
+    padding: 6px;
+  }
+  .team {
+    font-size: 14px;
+  }
+  .user {
+    font-size: 11px;
+  }
+}
+
+
+
+
+/* ========================= */
+/* Equipos retirados         */
+/* ========================= */
+table.retired th,
+table.retired td {
+  background-color: #c00; /* rojo fuerte */
+  color: #fff;
+}
+

@@ -318,14 +318,14 @@ def main():
 if __name__ == "__main__":
     main()
 
-from zoneinfo import ZoneInfo
-from datetime import datetime
 
 def compute_rows():
-    func = globals().get("compute_team_record_for_user") \
-        or globals().get("compute_team_record") \
-        or globals().get("build_team_row") \
+    func = (
+        globals().get("compute_team_record_for_user")
+        or globals().get("compute_team_record")
+        or globals().get("build_team_row")
         or globals().get("team_row_for_user")
+    )
     if not func:
         raise RuntimeError("No encuentro una función para construir filas por equipo.")
     if "LEAGUE_ORDER" not in globals():
@@ -336,10 +336,10 @@ def compute_rows():
     rows.sort(key=lambda r: (-r.get("points", 0), -r.get("wins", 0), r.get("losses", 0)))
     return rows
 
+
 def games_played_today_scl():
     tz_scl = ZoneInfo("America/Santiago")
     tz_utc = ZoneInfo("UTC")
-    today_local = datetime.now(tz_scl).date()
     all_pages = []
     for username_exact, _team in LEAGUE_ORDER:
         for p in PAGES:
@@ -347,7 +347,7 @@ def games_played_today_scl():
     seen_ids = set()
     seen_keys = set()
     items = []
-    valid_teams = {team for (_user, team) in LEAGUE_ORDER}  # NUEVO FILTRO
+    valid_teams = {team for (_user, team) in LEAGUE_ORDER}
     for g in dedup_by_id(all_pages):
         if (g.get("game_mode") or "").strip().upper() != MODE:
             continue
@@ -357,17 +357,9 @@ def games_played_today_scl():
         if d.tzinfo is None:
             d = d.replace(tzinfo=tz_utc)
         d_local = d.astimezone(tz_scl)
-        if d_local.date() != today_local:
-            continue
-        home_name_raw = (g.get("home_name") or "")
-        away_name_raw = (g.get("away_name") or "")
-        h_norm = normalize_user_for_compare(home_name_raw)
-        a_norm = normalize_user_for_compare(away_name_raw)
-        if not (h_norm in LEAGUE_USERS_NORM and a_norm in LEAGUE_USERS_NORM):
-            continue
+        # ✅ ya no filtramos por fecha: devolvemos todos los juegos acumulados
         home = (g.get("home_full_name") or "").strip()
         away = (g.get("away_full_name") or "").strip()
-        # 🔒 Validar que ambos equipos pertenezcan a la liga
         if home not in valid_teams or away not in valid_teams:
             continue
         gid = str(g.get("id") or "")
