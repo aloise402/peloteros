@@ -101,8 +101,24 @@ FETCH_ALIASES = {
 }
 
 TEAM_RECORD_ADJUSTMENTS = {
-    "Pirates": (0, 0),
-
+    "Pirates": (27, 4),
+    "Twins": (11, 23),
+    "Diamondbacks": (14, 9),
+    "Dodgers": (23, 9),
+    "Rangers": (10, 24),
+    "Red Sox": (8, 21),
+    "Royals": (16, 11),
+    "Tigers": (16, 9),
+    "Braves": (22, 8),
+    "Brewers": (8, 11),
+    "Cubs": (9, 7),
+    "Astros": (7, 6),
+    "Padres": (5, 12),
+    "Orioles": (6, 15),
+    "Yankees": (13, 9),
+    "White Sox": (2, 17),
+    "Nationals": (5, 3),
+    "Marlins": (6, 4),
 }
 
 TEAM_POINT_ADJUSTMENTS = {}
