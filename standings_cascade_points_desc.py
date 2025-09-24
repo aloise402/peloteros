@@ -58,8 +58,8 @@ DAY_WINDOW_MODE = conf["DAY_WINDOW_MODE"]
 API = "https://mlb25.theshow.com/apis/game_history.json"
 PLATFORM = "psn"
 MODE = "LEAGUE"
-SINCE = datetime(2025, 9, 19)
-PAGES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+SINCE = datetime(2025, 9, 24)
+PAGES = (1, 2, 3)
 TIMEOUT = 20
 RETRIES = 2
 
@@ -101,28 +101,8 @@ FETCH_ALIASES = {
 }
 
 TEAM_RECORD_ADJUSTMENTS = {
-    "Pirates": (27, 4),
-    "Twins": (11, 22),
-    "Diamondbacks": (16, 6),
-    "Dodgers": (24, 8),
-    "Rangers": (9, 22),
-    "Red Sox": (9, 22),
-    "Royals": (15, 10),
-    "Tigers": (14, 10),
-    "Braves": (12, 6),
-    "Brewers": (9, 10),
-    "Cubs": (8, 6),
-    "Astros": (7, 4),
-    "Padres": (5, 12),
-    "Orioles": (6, 14),
-    "Yankees": (8, 6),
-    "White Sox": (2, 16),
-    "Nationals": (5, 3),
-    "Guardians": (2, 5),
-    "Mets": (3, 9),
-    "Marlins": (5, 4),
-    "Athletics": (1, 0),
-    "Cardinals": (0, 2),
+    "Pirates": (0, 0),
+
 }
 
 TEAM_POINT_ADJUSTMENTS = {}
