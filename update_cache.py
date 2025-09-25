@@ -48,7 +48,8 @@ def _should_exclude_game(g):
 def _collect_postseason_games():
     """
     Devuelve TODOS los juegos desde standings.SINCE, filtrando por liga/miembros.
-    Salida: lista de dicts: {home_team, away_team, home_score, away_score, ended_at_local}
+    Salida (orden cronológico de captura): lista de dicts:
+      {home_team, away_team, home_score, away_score, ended_at_local}
     """
     tz_scl = SCL
     tz_utc = ZoneInfo("UTC")
@@ -117,135 +118,177 @@ def _collect_postseason_games():
 
     return out
 
-# ========= Bracket Wild Card (7vs8, 9vs10, WC3) =========
+# ========= Utilidades de series =========
+def _pair_key(a, b):
+    return tuple(sorted([a, b]))
+
+def _series_summary(a, b, games, best_of):
+    """
+    Cuenta victorias por pareja (a vs b) con lista 'games' (dicts).
+    best_of = 1/5/7 => wins_needed=1/3/4
+    Devuelve: dict(status, series_score, wins_a, wins_b, total, winner)
+    """
+    wins_needed = {1: 1, 5: 3, 7: 4}[best_of]
+    wins_a = wins_b = 0
+    for g in games:
+        if _pair_key(g["home_team"], g["away_team"]) != _pair_key(a, b):
+            continue
+        if g["home_score"] > g["away_score"]:
+            w = g["home_team"]
+        elif g["away_score"] > g["home_score"]:
+            w = g["away_team"]
+        else:
+            continue
+        if w == a:
+            wins_a += 1
+        elif w == b:
+            wins_b += 1
+    total = wins_a + wins_b
+    if total == 0:
+        status = "PENDIENTE"
+        winner = None
+    elif wins_a >= wins_needed:
+        status = "JUGADO"
+        winner = a
+    elif wins_b >= wins_needed:
+        status = "JUGADO"
+        winner = b
+    else:
+        status = "EN CURSO"
+        winner = None
+    return {
+        "status": status,
+        "series_score": f"{wins_a}-{wins_b}",
+        "wins_a": wins_a,
+        "wins_b": wins_b,
+        "total": total,
+        "winner": winner,
+        "wins_needed": wins_needed
+    }
+
+# ========= Wild Card (7vs8, 9vs10, WC3) =========
 def _build_wildcard_bracket(standings_rows, postseason_games):
     """
     Seeds 7..10 desde standings_rows:
-      WC1: 7 vs 8
-      WC2: 9 vs 10
-      WC3: perdedor WC1 vs ganador WC2
-    Marca status/score/winner si ya se jugaron.
+      WC1: 7 vs 8 (Bo1)
+      WC2: 9 vs 10 (Bo1)
+      WC3: perdedor WC1 vs ganador WC2 (Bo1)
     """
     def _row_key(r):
         return (-r.get("points", 0), -r.get("wins", 0), r.get("losses", 0))
     rows = sorted(standings_rows, key=_row_key)
-
     if len(rows) < 10:
         return [
-            {"id": "WC1", "home": "-", "away": "-", "status": "PENDIENTE", "score": "", "winner": None, "loser": None},
-            {"id": "WC2", "home": "-", "away": "-", "status": "PENDIENTE", "score": "", "winner": None, "loser": None},
-            {"id": "WC3", "home": "Perdedor WC1", "away": "Ganador WC2", "status": "PENDIENTE", "score": "", "winner": None, "loser": None},
+            {"id": "WC1", "home": "-", "away": "-", "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1},
+            {"id": "WC2", "home": "-", "away": "-", "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1},
+            {"id": "WC3", "home": "Perdedor WC1", "away": "Ganador WC2", "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1},
         ]
 
-    seed7 = rows[6]["team"]
-    seed8 = rows[7]["team"]
-    seed9 = rows[8]["team"]
-    seed10 = rows[9]["team"]
+    seed7 = rows[6]["team"]; seed8 = rows[7]["team"]; seed9 = rows[8]["team"]; seed10 = rows[9]["team"]
 
-    wc1 = {"id": "WC1", "home": seed7, "away": seed8, "status": "PENDIENTE", "score": "", "winner": None, "loser": None}
-    wc2 = {"id": "WC2", "home": seed9, "away": seed10, "status": "PENDIENTE", "score": "", "winner": None, "loser": None}
-    wc3 = {"id": "WC3", "home": "Perdedor WC1", "away": "Ganador WC2", "status": "PENDIENTE", "score": "", "winner": None, "loser": None}
+    wc1 = {"id": "WC1", "home": seed7, "away": seed8, "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1}
+    wc2 = {"id": "WC2", "home": seed9, "away": seed10, "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1}
+    wc3 = {"id": "WC3", "home": "Perdedor WC1", "away": "Ganador WC2", "status": "PENDIENTE", "score": "", "winner": None, "loser": None, "best_of": 1}
 
-    def _is_match(g, a, b):
-        return {g["home_team"], g["away_team"]} == {a, b}
-
-    def _winner_loser(g):
-        if g["home_score"] > g["away_score"]:
-            return g["home_team"], g["away_team"]
-        elif g["away_score"] > g["home_score"]:
-            return g["away_team"], g["home_team"]
-        return None, None
+    def _last_score_for(a, b):
+        # Para Bo1: si existe ≥1 juego tomamos el más reciente y formamos score A-perspectiva
+        last = None
+        for g in postseason_games:
+            if _pair_key(g["home_team"], g["away_team"]) == _pair_key(a, b):
+                last = g
+        if last:
+            if last["home_team"] == a:
+                return f"{last['home_score']}-{last['away_score']}"
+            else:
+                return f"{last['away_score']}-{last['home_score']}"
+        return ""
 
     # WC1
-    g_wc1 = next((g for g in postseason_games if _is_match(g, seed7, seed8)), None)
-    if g_wc1:
-        wc1["status"] = "JUGADO"
-        wc1["score"]  = f"{g_wc1['home_score']}-{g_wc1['away_score']}" if g_wc1["home_team"] == seed7 else f"{g_wc1['away_score']}-{g_wc1['home_score']}"
-        w, l = _winner_loser(g_wc1)
-        wc1["winner"], wc1["loser"] = w, l
+    s1 = _series_summary(seed7, seed8, postseason_games, best_of=1)
+    wc1["status"] = s1["status"]
+    wc1["score"] = _last_score_for(seed7, seed8)
+    if s1["winner"]:
+        wc1["winner"] = s1["winner"]
+        wc1["loser"] = seed8 if s1["winner"] == seed7 else seed7
 
     # WC2
-    g_wc2 = next((g for g in postseason_games if _is_match(g, seed9, seed10)), None)
-    if g_wc2:
-        wc2["status"] = "JUGADO"
-        wc2["score"]  = f"{g_wc2['home_score']}-{g_wc2['away_score']}" if g_wc2["home_team"] == seed9 else f"{g_wc2['away_score']}-{g_wc2['home_score']}"
-        w, l = _winner_loser(g_wc2)
-        wc2["winner"], wc2["loser"] = w, l
+    s2 = _series_summary(seed9, seed10, postseason_games, best_of=1)
+    wc2["status"] = s2["status"]
+    wc2["score"] = _last_score_for(seed9, seed10)
+    if s2["winner"]:
+        wc2["winner"] = s2["winner"]
+        wc2["loser"] = seed10 if s2["winner"] == seed9 else seed9
 
-    # WC3 = perdedor WC1 vs ganador WC2
+    # WC3
     if wc1["loser"] and wc2["winner"]:
         a, b = wc1["loser"], wc2["winner"]
-        g_wc3 = next((g for g in postseason_games if _is_match(g, a, b)), None)
-        if g_wc3:
-            wc3.update({
-                "home": g_wc3["home_team"],
-                "away": g_wc3["away_team"],
-                "status": "JUGADO",
-                "score": f"{g_wc3['home_score']}-{g_wc3['away_score']}",
-            })
-            w, l = _winner_loser(g_wc3)
-            wc3["winner"], wc3["loser"] = w, l
-        else:
-            wc3["home"], wc3["away"] = a, b
+        wc3["home"], wc3["away"] = a, b
+        s3 = _series_summary(a, b, postseason_games, best_of=1)
+        wc3["status"] = s3["status"]
+        wc3["score"] = _last_score_for(a, b)
+        if s3["winner"]:
+            wc3["winner"] = s3["winner"]
+            wc3["loser"] = b if s3["winner"] == a else a
 
     return [wc1, wc2, wc3]
 
-# ========= Bracket de 8 (1–8) tras resolver WC =========
+# ========= Bracket de 8 (1–8) con Bo5/Bo5/Bo7 =========
 def _build_bracket8(standings_rows, wildcard_bracket, postseason_games):
     """
-    QF: 1–8, 2–7, 3–6, 4–5 (seed 7 = ganador WC1, seed 8 = ganador WC3).
-    Marca PENDIENTE/JUGADO/EN CURSO en base a juegos ya disputados y muestra último score si existe.
+    QF (Bo5): 1–8, 2–7, 3–6, 4–5
+    SF (Bo5): ganador QF1 vs ganador QF2, ganador QF3 vs ganador QF4
+    F  (Bo7): ganador SF1 vs ganador SF2
     """
     def _row_key(r):
         return (-r.get("points", 0), -r.get("wins", 0), r.get("losses", 0))
     rows = sorted(standings_rows, key=_row_key)
 
-    # Seeds base
     if len(rows) < 6:
         return None
-    seed1, seed2, seed3, seed4, seed5, seed6 = [rows[i]["team"] for i in range(6)]
 
-    # Seeds 7 y 8 desde WC
+    seed1, seed2, seed3, seed4, seed5, seed6 = [rows[i]["team"] for i in range(6)]
     wc_index = {g["id"]: g for g in (wildcard_bracket or [])}
     seed7_final = (wc_index.get("WC1") or {}).get("winner") or "Ganador WC1"
     seed8_final = (wc_index.get("WC3") or {}).get("winner") or "Ganador WC3"
 
-    def _find_games(a, b):
-        return [g for g in postseason_games if {g["home_team"], g["away_team"]} == {a, b}]
+    def _series_card(id_, a, b, best_of):
+        # Si alguno es placeholder, no podemos computar serie
+        placeholder = ("Ganador" in a) or ("Ganador" in b)
+        m = {"id": id_, "home": a, "away": b, "best_of": best_of}
+        if placeholder:
+            m.update({"status": "PENDIENTE", "series_score": "0-0", "winner": None})
+            return m
+        s = _series_summary(a, b, postseason_games, best_of=best_of)
+        m.update({"status": s["status"], "series_score": s["series_score"], "winner": s["winner"]})
+        return m
 
-    def _status_for_pair(a, b):
-        games = _find_games(a, b)
-        if not games:
-            return "PENDIENTE", ""
-        # último juego
-        last = games[-1]
-        if last["home_team"] == a:
-            score = f'{last["home_score"]}-{last["away_score"]}'
-        else:
-            score = f'{last["away_score"]}-{last["home_score"]}'
-        # si hay ≥1 juego, marcamos JUGADO (si asumes series 1 juego) o EN CURSO (si BO3/BO5)
-        # Aquí dejamos EN CURSO por defecto, cambia a JUGADO si quieres 1 partido.
-        return "EN CURSO", score
+    # Cuartos (Bo5)
+    qf1 = _series_card("QF1", seed1, seed8_final, 5)
+    qf2 = _series_card("QF2", seed2, seed7_final, 5)
+    qf3 = _series_card("QF3", seed3, seed6,       5)
+    qf4 = _series_card("QF4", seed4, seed5,       5)
 
-    qf = [
-        {"id": "QF1", "home": seed1, "away": seed8_final},
-        {"id": "QF2", "home": seed2, "away": seed7_final},
-        {"id": "QF3", "home": seed3, "away": seed6},
-        {"id": "QF4", "home": seed4, "away": seed5},
-    ]
-    for m in qf:
-        s, sc = _status_for_pair(m["home"], m["away"])
-        m["status"] = s
-        m["score"] = sc
+    # Semis (Bo5) — solo si hay ganadores de QFs
+    semi1_a = qf1["winner"] or ("Ganador " + qf1["id"])
+    semi1_b = qf2["winner"] or ("Ganador " + qf2["id"])
+    semi2_a = qf3["winner"] or ("Ganador " + qf3["id"])
+    semi2_b = qf4["winner"] or ("Ganador " + qf4["id"])
+
+    sf1 = _series_card("SF1", semi1_a, semi1_b, 5)
+    sf2 = _series_card("SF2", semi2_a, semi2_b, 5)
+
+    # Final (Bo7) — solo si hay ganadores de SFs
+    final_a = sf1["winner"] or ("Ganador " + sf1["id"])
+    final_b = sf2["winner"] or ("Ganador " + sf2["id"])
+    f1 = _series_card("F1", final_a, final_b, 7)
 
     bracket8 = {
-        "quarters": qf,
-        "semis": [
-            {"id": "SF1", "from": ["QF1","QF2"], "status": "PENDIENTE"},
-            {"id": "SF2", "from": ["QF3","QF4"], "status": "PENDIENTE"},
-        ],
-        "final": {"id": "F1", "from": ["SF1","SF2"], "status": "PENDIENTE"}
+        "quarters": [qf1, qf2, qf3, qf4],
+        "semis":    [sf1, sf2],
+        "final":     f1
     }
+    # Campeón opcional
+    bracket8["champion"] = f1["winner"] if f1.get("winner") else None
     return bracket8
 
 def update_data_cache():
@@ -267,10 +310,10 @@ def update_data_cache():
         # Postemporada completa desde SINCE
         postseason_games = _collect_postseason_games()
 
-        # Bracket Wild Card (L→R)
+        # Wild Card (Bo1)
         wildcard_bracket = _build_wildcard_bracket(rows, postseason_games)
 
-        # Bracket 8 equipos (1–8)
+        # Bracket 8 (QF/SF Bo5, Final Bo7)
         bracket8 = _build_bracket8(rows, wildcard_bracket, postseason_games)
 
         payload = {
@@ -278,7 +321,7 @@ def update_data_cache():
             "games_today": games_today,
             "postseason_games": postseason_games,   # lista de dicts
             "wildcard_bracket": wildcard_bracket,   # lista [WC1, WC2, WC3]
-            "bracket8": bracket8,                   # dict con quarters/semis/final
+            "bracket8": bracket8,                   # dict con quarters/semis/final (+ champion)
             "last_updated": ts
         }
 
