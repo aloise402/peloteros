@@ -182,5 +182,424 @@
 
     loadData();
   </script>
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="wc-bracket">
+  <h2>Wild Card — Bracket</h2>
+  <div id="wc-bracket-root"></div>
+</section>
+
+<style>
+.wc-bracket { margin-top: 28px; }
+.wc-bracket h2 { margin: 0 0 12px 0; font-size: 1.2rem; }
+.wc-grid {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr 48px 1fr; /* WC1 | → | WC3 | ← | WC2 */
+  gap: 12px;
+  align-items: start;
+}
+.wc-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.25;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+.wc-id { opacity: .7; font-size: .85rem; display: block; margin-bottom: 6px; }
+.wc-teams { font-weight: 600; }
+.wc-score { opacity: .9; font-size: .95rem; }
+.wc-status { opacity: .65; font-size: .8rem; }
+.wc-connector { display:flex; align-items:center; justify-content:center; opacity:.35; font-weight:700; }
+.wc-winner { border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+</style>
+
+<script>
+(async function renderWCBracket() {
+  try {
+    const res = await fetch('/api/full', { cache: 'no-cache' });
+    const data = await res.json();
+
+    const root = document.getElementById('wc-bracket-root');
+    if (!data || !data.wildcard_bracket || !Array.isArray(data.wildcard_bracket)) {
+      root.innerHTML = '<p>No hay datos de Wild Card todavía.</p>';
+      return;
+    }
+
+    // Normaliza
+    const [wc1, wc2, wc3] = data.wildcard_bracket;
+
+    function gameCard(g) {
+      const teams = `${g.home || '-'} vs ${g.away || '-'}`;
+      const status = g.status || 'PENDIENTE';
+      const score = g.score ? ` — ${g.score}` : '';
+      const winner = g.winner || null;
+      const cls = ['wc-card'];
+      if (winner) cls.push('wc-winner');
+      return `
+        <div class="${cls.join(' ')}">
+          <span class="wc-id">${g.id}</span>
+          <div class="wc-teams">${teams}<span class="wc-score">${score}</span></div>
+          <div class="wc-status">${status}${winner ? ' — ganador: ' + winner : ''}</div>
+        </div>
+      `;
+    }
+
+    root.innerHTML = `
+      <div class="wc-grid">
+        <div>${gameCard(wc1)}</div>
+        <div class="wc-connector">→</div>
+        <div>${gameCard(wc3)}</div>
+        <div class="wc-connector">←</div>
+        <div>${gameCard(wc2)}</div>
+      </div>
+    `;
+  } catch (e) {
+    const root = document.getElementById('wc-bracket-root');
+    root.innerHTML = '<p>Error cargando bracket.</p>';
+  }
+})();
+</script>
+
+
+
+
+<section class="wc-bracket">
+  <h2>Wild Card — Bracket</h2>
+  <div id="wc-bracket-root" aria-live="polite"></div>
+</section>
+
+<style>
+.wc-bracket { margin-top: 28px; }
+.wc-bracket h2 { margin: 0 0 12px 0; font-size: 1.2rem; }
+
+.wc-grid {
+  display: grid;
+  grid-template-columns: 1fr 72px 1fr; /* Izq (WC1+WC2) | conector | Derecha (WC3) */
+  gap: 14px;
+  align-items: start;
+}
+
+.wc-col { display: grid; gap: 12px; }
+.wc-card {
+  background: #0b1220; border: 1px solid #23314f; border-radius: 14px;
+  padding: 12px 14px; line-height: 1.25;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+.wc-id { opacity: .75; font-size: .85rem; display: block; margin-bottom: 6px; }
+.wc-teams { font-weight: 700; font-size: .98rem; }
+.wc-score { opacity: .95; font-weight: 600; margin-left: 6px; }
+.wc-status { margin-top: 6px; font-size: .82rem; font-weight: 600; letter-spacing: .2px; }
+
+.badge {
+  display: inline-block; padding: 4px 8px; border-radius: 999px;
+  border: 1px solid transparent; font-weight: 700; font-size: .76rem;
+}
+
+/* Colores por estatus */
+.is-jugado .badge { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.45); color: #7ee088; }
+.is-pendiente .badge { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.45); color: #f7ce77; }
+
+/* Resaltar ganador si existe */
+.has-winner { border-color: rgba(34,197,94,.45); box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+
+/* Conectores grandes y visibles */
+.wc-connector {
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+}
+.wc-arrow {
+  font-size: 34px; line-height: 1; opacity: .9; filter: drop-shadow(0 0 2px rgba(0,0,0,.5));
+}
+</style>
+
+<script>
+async function fetchFull() {
+  const res = await fetch('/api/full', { cache: 'no-cache' });
+  return await res.json();
+}
+
+function statusClass(s) {
+  return (s || '').toUpperCase() === 'JUGADO' ? 'is-jugado' : 'is-pendiente';
+}
+
+function gameCard(g) {
+  const status = (g.status || 'PENDIENTE').toUpperCase();
+  const cls = ['wc-card', statusClass(status)];
+  if (g.winner) cls.push('has-winner');
+  const teams = `${g.home || '-'} vs ${g.away || '-'}`;
+  const score = g.score ? `<span class="wc-score">${g.score}</span>` : '';
+  const badge = `<span class="badge">${status}</span>`;
+  const winner = g.winner ? ` — ganador: ${g.winner}` : '';
+  return `
+    <div class="${cls.join(' ')}">
+      <span class="wc-id">${g.id}</span>
+      <div class="wc-teams">${teams}${score}</div>
+      <div class="wc-status">${badge}${winner}</div>
+    </div>
+  `;
+}
+
+async function renderWCBracket() {
+  try {
+    const data = await fetchFull();
+    const root = document.getElementById('wc-bracket-root');
+
+    if (!data || !Array.isArray(data.wildcard_bracket)) {
+      root.innerHTML = '<p>No hay datos de Wild Card todavía.</p>';
+      return;
+    }
+
+    const [wc1, wc2, wc3] = data.wildcard_bracket;
+
+    root.innerHTML = `
+      <div class="wc-grid">
+        <div class="wc-col">
+          ${gameCard(wc1)}
+          ${gameCard(wc2)}
+        </div>
+        <div class="wc-connector">
+          <div class="wc-arrow">➜</div>
+          <div class="wc-arrow">➜</div>
+        </div>
+        <div class="wc-col">
+          ${gameCard(wc3)}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    const root = document.getElementById('wc-bracket-root');
+    root.innerHTML = '<p>Error cargando bracket.</p>';
+  }
+}
+
+// pinta ahora y refresca cada 45s
+renderWCBracket();
+setInterval(renderWCBracket, 45000);
+</script>
+
+
+
+
+
+
+
+<section class="wc-bracket">
+  <h2>Wild Card — Bracket</h2>
+  <div id="wc-bracket-root" aria-live="polite"></div>
+</section>
+
+<section class="pofs-bracket">
+  <h2>Playoffs — Bracket (1–8)</h2>
+  <div id="bracket8-root" aria-live="polite"></div>
+</section>
+
+<style>
+/* ===== Base ===== */
+.wc-bracket, .pofs-bracket { margin-top: 28px; }
+.wc-bracket h2, .pofs-bracket h2 { margin: 0 0 12px 0; font-size: 1.2rem; }
+
+/* ===== Tarjetas ===== */
+.card {
+  background: #0b1220; border: 1px solid #23314f; border-radius: 14px;
+  padding: 12px 14px; line-height: 1.25;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.card small { opacity: .75; font-size: .85rem; display: block; margin-bottom: 6px; }
+
+.team-line { font-weight: 700; font-size: .98rem; }
+.team-name { color: #7aa2ff; } /* ← color distintivo para nombres de equipos */
+.score { opacity: .95; font-weight: 600; margin-left: 6px; }
+
+.meta { margin-top: 6px; font-size: .82rem; font-weight: 600; letter-spacing: .2px; }
+.badge {
+  display: inline-block; padding: 4px 8px; border-radius: 999px;
+  border: 1px solid transparent; font-weight: 700; font-size: .76rem;
+}
+.is-jugado .badge    { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.45); color: #7ee088; }
+.is-pendiente .badge { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.45); color: #f7ce77; }
+.is-curso .badge     { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.45); color: #9ec5ff; }
+
+.has-winner { border-color: rgba(34,197,94,.45); box-shadow: 0 0 0 1px rgba(34,197,94,.25) inset; }
+
+/* ===== Layout WC (L→R) ===== */
+.wc-grid {
+  display: grid; grid-template-columns: 1fr 84px 1fr; gap: 14px; align-items: start;
+}
+.col { display: grid; gap: 12px; }
+.connector {
+  height: 100%; display: grid; align-content: center; justify-items: center; gap: 28px;
+}
+.arrow { font-size: 40px; line-height: 1; opacity: .9; filter: drop-shadow(0 0 2px rgba(0,0,0,.5)); }
+
+/* ===== Layout Bracket 8 (QF → SF → F) ===== */
+.bracket-grid {
+  display: grid; grid-template-columns: 1fr 84px 1fr 84px 1fr; gap: 14px; align-items: start;
+}
+.round-col { display: grid; gap: 12px; }
+.round-title { opacity:.8; font-weight:700; margin-bottom:4px; }
+</style>
+
+<script>
+async function fetchFull() {
+  const res = await fetch('/api/full', { cache: 'no-cache' });
+  return await res.json();
+}
+const up = s => (s || '').toUpperCase();
+
+function statusClass(s) {
+  const S = up(s);
+  if (S === 'JUGADO') return 'is-jugado';
+  if (S === 'EN CURSO') return 'is-curso';
+  return 'is-pendiente';
+}
+
+function labelStatus(s) {
+  const S = up(s);
+  if (S === 'JUGADO') return 'JUGADO';
+  if (S === 'EN CURSO') return 'EN CURSO';
+  return 'PENDIENTE';
+}
+
+function gameCardSimple(g) {
+  const s = labelStatus(g.status);
+  const cls = ['card', statusClass(s)];
+  if (g.winner) cls.push('has-winner');
+
+  const t1 = `<span class="team-name">${g.home || '-'}</span>`;
+  const t2 = `<span class="team-name">${g.away || '-'}</span>`;
+  const score = g.score ? `<span class="score">${g.score}</span>` : '';
+  const winner = g.winner ? ` — ganador: ${g.winner}` : '';
+
+  return `
+    <div class="${cls.join(' ')}">
+      <small>${g.id}</small>
+      <div class="team-line">${t1} vs ${t2}${score}</div>
+      <div class="meta"><span class="badge">${s}</span>${winner}</div>
+    </div>
+  `;
+}
+
+function renderWC(bracket) {
+  const root = document.getElementById('wc-bracket-root');
+  if (!Array.isArray(bracket)) {
+    root.innerHTML = '<p>No hay datos de Wild Card todavía.</p>';
+    return;
+  }
+  const [wc1, wc2, wc3] = bracket;
+  root.innerHTML = `
+    <div class="wc-grid">
+      <div class="col">
+        ${gameCardSimple(wc1)}
+        ${gameCardSimple(wc2)}
+      </div>
+      <div class="connector">
+        <div class="arrow">➜</div>
+        <div class="arrow">➜</div>
+      </div>
+      <div class="col">
+        ${gameCardSimple(wc3)}
+      </div>
+    </div>
+  `;
+}
+
+function gameCardQF(g) {
+  // igual que simple, pero id visible QF*
+  return gameCardSimple(g);
+}
+
+function renderBracket8(br) {
+  const root = document.getElementById('bracket8-root');
+  if (!br || !br.quarters) {
+    root.innerHTML = '<p>Esperando resolución de Wild Card…</p>';
+    return;
+  }
+  const qf = br.quarters || [];
+  const sf = br.semis || [];
+  const f  = br.final || null;
+
+  const sfCards = (sf || []).map(x => {
+    const desc = `${x.from?.join(' → ') || ''}`;
+    return `
+      <div class="card ${statusClass(x.status)}">
+        <small>${x.id}</small>
+        <div>${desc}</div>
+        <div class="meta"><span class="badge">${labelStatus(x.status)}</span></div>
+      </div>
+    `;
+  }).join('');
+
+  const fCard = f ? `
+    <div class="card ${statusClass(f.status)}">
+      <small>${f.id}</small>
+      <div>${(f.from || []).join(' → ')}</div>
+      <div class="meta"><span class="badge">${labelStatus(f.status)}</span></div>
+    </div>
+  ` : '';
+
+  root.innerHTML = `
+    <div class="bracket-grid">
+      <div class="round-col">
+        <div class="round-title">Cuartos</div>
+        ${qf.map(gameCardQF).join('')}
+      </div>
+      <div class="connector"><div class="arrow">➜</div></div>
+      <div class="round-col">
+        <div class="round-title">Semifinales</div>
+        ${sfCards}
+      </div>
+      <div class="connector"><div class="arrow">➜</div></div>
+      <div class="round-col">
+        <div class="round-title">Final</div>
+        ${fCard}
+      </div>
+    </div>
+  `;
+}
+
+async function renderPlayoffs() {
+  const data = await fetchFull();
+  renderWC(data.wildcard_bracket);
+  renderBracket8(data.bracket8);
+}
+
+// pinta ahora y refresca cada 45s
+renderPlayoffs();
+setInterval(renderPlayoffs, 45000);
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>
