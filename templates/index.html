@@ -399,12 +399,12 @@ setInterval(renderWCBracket, 45000);
 
 
 <section class="wc-bracket">
-  <h2>Wild Card — Bracket</h2>
+  <h2>Wild Card — Bracket (Bo1)</h2>
   <div id="wc-bracket-root" aria-live="polite"></div>
 </section>
 
 <section class="pofs-bracket">
-  <h2>Playoffs — Bracket (1–8)</h2>
+  <h2>Playoffs — Bracket (QF/SF Bo5, Final Bo7)</h2>
   <div id="bracket8-root" aria-live="polite"></div>
 </section>
 
@@ -422,10 +422,10 @@ setInterval(renderWCBracket, 45000);
 .card small { opacity: .75; font-size: .85rem; display: block; margin-bottom: 6px; }
 
 .team-line { font-weight: 700; font-size: .98rem; }
-.team-name { color: #7aa2ff; } /* ← color distintivo para nombres de equipos */
+.team-name { color: #7aa2ff; } /* ← destaca nombres */
 .score { opacity: .95; font-weight: 600; margin-left: 6px; }
 
-.meta { margin-top: 6px; font-size: .82rem; font-weight: 600; letter-spacing: .2px; }
+.meta { margin-top: 6px; font-size: .82rem; font-weight: 600; letter-spacing: .2px; display:flex; gap:8px; align-items:center;}
 .badge {
   display: inline-block; padding: 4px 8px; border-radius: 999px;
   border: 1px solid transparent; font-weight: 700; font-size: .76rem;
@@ -467,7 +467,6 @@ function statusClass(s) {
   if (S === 'EN CURSO') return 'is-curso';
   return 'is-pendiente';
 }
-
 function labelStatus(s) {
   const S = up(s);
   if (S === 'JUGADO') return 'JUGADO';
@@ -475,7 +474,8 @@ function labelStatus(s) {
   return 'PENDIENTE';
 }
 
-function gameCardSimple(g) {
+function gameCardSingle(g) {
+  // Para WC (Bo1): usa g.score (último partido) y winner si existe
   const s = labelStatus(g.status);
   const cls = ['card', statusClass(s)];
   if (g.winner) cls.push('has-winner');
@@ -484,10 +484,32 @@ function gameCardSimple(g) {
   const t2 = `<span class="team-name">${g.away || '-'}</span>`;
   const score = g.score ? `<span class="score">${g.score}</span>` : '';
   const winner = g.winner ? ` — ganador: ${g.winner}` : '';
+  const bo = g.best_of ? `Bo${g.best_of}` : 'Bo1';
 
   return `
     <div class="${cls.join(' ')}">
-      <small>${g.id}</small>
+      <small>${g.id} • ${bo}</small>
+      <div class="team-line">${t1} vs ${t2}${score}</div>
+      <div class="meta"><span class="badge">${s}</span>${winner}</div>
+    </div>
+  `;
+}
+
+function gameCardSeries(g) {
+  // Para QF/SF/F: g.series_score (ej: 2-1) y best_of 5/7
+  const s = labelStatus(g.status);
+  const cls = ['card', statusClass(s)];
+  if (g.winner) cls.push('has-winner');
+
+  const t1 = `<span class="team-name">${g.home || '-'}</span>`;
+  const t2 = `<span class="team-name">${g.away || '-'}</span>`;
+  const score = g.series_score ? `<span class="score">${g.series_score}</span>` : '';
+  const winner = g.winner ? ` — ganador: ${g.winner}` : '';
+  const bo = g.best_of ? `Bo${g.best_of}` : '';
+
+  return `
+    <div class="${cls.join(' ')}">
+      <small>${g.id} ${bo ? '• ' + bo : ''}</small>
       <div class="team-line">${t1} vs ${t2}${score}</div>
       <div class="meta"><span class="badge">${s}</span>${winner}</div>
     </div>
@@ -504,23 +526,18 @@ function renderWC(bracket) {
   root.innerHTML = `
     <div class="wc-grid">
       <div class="col">
-        ${gameCardSimple(wc1)}
-        ${gameCardSimple(wc2)}
+        ${gameCardSingle(wc1)}
+        ${gameCardSingle(wc2)}
       </div>
       <div class="connector">
         <div class="arrow">➜</div>
         <div class="arrow">➜</div>
       </div>
       <div class="col">
-        ${gameCardSimple(wc3)}
+        ${gameCardSingle(wc3)}
       </div>
     </div>
   `;
-}
-
-function gameCardQF(g) {
-  // igual que simple, pero id visible QF*
-  return gameCardSimple(g);
 }
 
 function renderBracket8(br) {
@@ -533,40 +550,22 @@ function renderBracket8(br) {
   const sf = br.semis || [];
   const f  = br.final || null;
 
-  const sfCards = (sf || []).map(x => {
-    const desc = `${x.from?.join(' → ') || ''}`;
-    return `
-      <div class="card ${statusClass(x.status)}">
-        <small>${x.id}</small>
-        <div>${desc}</div>
-        <div class="meta"><span class="badge">${labelStatus(x.status)}</span></div>
-      </div>
-    `;
-  }).join('');
-
-  const fCard = f ? `
-    <div class="card ${statusClass(f.status)}">
-      <small>${f.id}</small>
-      <div>${(f.from || []).join(' → ')}</div>
-      <div class="meta"><span class="badge">${labelStatus(f.status)}</span></div>
-    </div>
-  ` : '';
-
   root.innerHTML = `
     <div class="bracket-grid">
       <div class="round-col">
-        <div class="round-title">Cuartos</div>
-        ${qf.map(gameCardQF).join('')}
+        <div class="round-title">Cuartos (Bo5)</div>
+        ${qf.map(gameCardSeries).join('')}
       </div>
       <div class="connector"><div class="arrow">➜</div></div>
       <div class="round-col">
-        <div class="round-title">Semifinales</div>
-        ${sfCards}
+        <div class="round-title">Semifinales (Bo5)</div>
+        ${sf.map(gameCardSeries).join('')}
       </div>
       <div class="connector"><div class="arrow">➜</div></div>
       <div class="round-col">
-        <div class="round-title">Final</div>
-        ${fCard}
+        <div class="round-title">Serie Mundial (Bo7)</div>
+        ${f ? gameCardSeries(f) : ''}
+        ${br.champion ? `<div class="card is-jugado"><small>Campeón</small><div class="team-line"><span class="team-name">${br.champion}</span></div></div>` : ''}
       </div>
     </div>
   `;
@@ -582,6 +581,7 @@ async function renderPlayoffs() {
 renderPlayoffs();
 setInterval(renderPlayoffs, 45000);
 </script>
+
 
 
 
