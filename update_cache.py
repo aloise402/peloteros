@@ -49,9 +49,16 @@ def update_data_cache():
         rows = standings.compute_rows()
         games_today = standings.games_played_today_scl()
         games_today = [g for g in games_today if not _should_exclude_game(g)]
+        # NUEVO: tomar postemporada y wildcard si existen
+        get_ps = getattr(standings, "get_postseason_games", None)
+        get_wc = getattr(standings, "get_wildcard_games", None)
+        postseason_games = get_ps() if callable(get_ps) else []
+        wildcard_games = get_wc() if callable(get_wc) else []
         payload = {
             "standings": rows,
             "games_today": games_today,
+            "postseason_games": postseason_games,  # ← NUEVO
+            "wildcard_games": wildcard_games,      # ← NUEVO
             "last_updated": ts
         }
         with open(CACHE_FILE, "w", encoding="utf-8") as f:

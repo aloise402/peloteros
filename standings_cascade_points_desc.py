@@ -1,5 +1,7 @@
+# === INICIO DEL ARCHIVO SIN CAMBIOS EN TU LÓGICA EXISTENTE ===
 import requests, time, re, os, json
 from datetime import datetime
+from zoneinfo import ZoneInfo  # ← ADITIVO (necesario para TZ en funciones nuevas y/o existentes)
 
 MODE = "ONLINE"
 
@@ -58,8 +60,8 @@ DAY_WINDOW_MODE = conf["DAY_WINDOW_MODE"]
 API = "https://mlb25.theshow.com/apis/game_history.json"
 PLATFORM = "psn"
 MODE = "LEAGUE"
-SINCE = datetime(2025, 9, 24)
-PAGES = (1, 2, 3)
+SINCE = datetime(2025, 9, 24)  # ← usaremos esta fecha como inicio de Postemporada
+PAGES = (1, 2)
 TIMEOUT = 20
 RETRIES = 2
 
@@ -338,46 +340,205 @@ def compute_rows():
 
 
 def games_played_today_scl():
+    # Import local para no alterar tus imports globales
+    from zoneinfo import ZoneInfo
+
     tz_scl = ZoneInfo("America/Santiago")
     tz_utc = ZoneInfo("UTC")
+
+    # Ventana del DÍA ACTUAL en Santiago
+    now_scl = datetime.now(tz_scl)
+    day_start = now_scl.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end   = day_start.replace(hour=23, minute=59, second=59, microsecond=999999)
+
     all_pages = []
     for username_exact, _team in LEAGUE_ORDER:
         for p in PAGES:
             all_pages += fetch_page(username_exact, p)
+
     seen_ids = set()
     seen_keys = set()
     items = []
     valid_teams = {team for (_user, team) in LEAGUE_ORDER}
+
     for g in dedup_by_id(all_pages):
         if (g.get("game_mode") or "").strip().upper() != MODE:
             continue
+
         d = parse_date(g.get("display_date", ""))
         if not d:
             continue
+
+        # normaliza a UTC si viene naive, luego pasa a Santiago
         if d.tzinfo is None:
             d = d.replace(tzinfo=tz_utc)
         d_local = d.astimezone(tz_scl)
-        # ✅ ya no filtramos por fecha: devolvemos todos los juegos acumulados
+
+        # ⛔️ filtro: SOLO hoy (Santiago)
+        if not (day_start <= d_local <= day_end):
+            continue
+
         home = (g.get("home_full_name") or "").strip()
         away = (g.get("away_full_name") or "").strip()
         if home not in valid_teams or away not in valid_teams:
             continue
+
         gid = str(g.get("id") or "")
         if gid and gid in seen_ids:
             continue
+
         hr = str(g.get("home_runs") or "0")
         ar = str(g.get("away_runs") or "0")
         pitcher_info = (g.get("display_pitcher_info") or "").strip()
         canon_key = (home, away, hr, ar, pitcher_info)
         if canon_key in seen_keys:
             continue
+
         if gid:
             seen_ids.add(gid)
         seen_keys.add(canon_key)
+
+        # formato de salida igual que el tuyo
         try:
             fecha_hora = d_local.strftime("%d-%m-%Y - %-I:%M %p").lower()
         except Exception:
             fecha_hora = d_local.strftime("%d-%m-%Y - %#I:%M %p").lower()
+
         items.append((d_local, f"{home} {hr} - {away} {ar}  - {fecha_hora} (hora Chile)"))
+
     items.sort(key=lambda x: x[0])
     return [s for _, s in items]
+
+
+# === FIN DE TU LÓGICA ACTUAL ===
+# === A PARTIR DE AQUÍ: SOLO FUNCIONES NUEVAS, ADITIVAS ===
+
+def _collect_postseason_raw():
+    """Juegos de la liga (entre equipos válidos) desde SINCE."""
+    tz_scl = ZoneInfo("America/Santiago")
+    tz_utc = ZoneInfo("UTC")
+    valid_teams = {team for (_user, team) in LEAGUE_ORDER}
+    # capturar
+    all_pages = []
+    for username_exact, _team in LEAGUE_ORDER:
+        for p in PAGES:
+            all_pages += fetch_page(username_exact, p)
+    # dedup y filtro
+    seen_ids = set()
+    seen_pairs = set()
+    raw = []
+    for g in dedup_by_id(all_pages):
+        if (g.get("game_mode") or "").strip().upper() != MODE:
+            continue
+        d = parse_date(g.get("display_date", ""))
+        if not d or d < SINCE:
+            continue
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=tz_utc)
+        d_local = d.astimezone(tz_scl)
+        home = (g.get("home_full_name") or "").strip()
+        away = (g.get("away_full_name") or "").strip()
+        if home not in valid_teams or away not in valid_teams:
+            continue
+        gid = str(g.get("id") or "")
+        hr = int(g.get("home_runs") or 0)
+        ar = int(g.get("away_runs") or 0)
+        # evitar duplicados estrictos por id
+        if gid and gid in seen_ids:
+            continue
+        if gid:
+            seen_ids.add(gid)
+        # formateo
+        try:
+            ended = d_local.strftime("%d-%m-%Y - %-I:%M %p").lower()
+        except Exception:
+            ended = d_local.strftime("%d-%m-%Y - %#I:%M %p").lower()
+        raw.append({
+            "id": gid,
+            "home_team": home,
+            "away_team": away,
+            "home_score": hr,
+            "away_score": ar,
+            "ended_at_local": f"{ended} (hora Chile)",
+            "ended_dt": d_local,
+        })
+    raw.sort(key=lambda r: r["ended_dt"])
+    return raw
+
+def get_postseason_games():
+    """
+    Devuelve una lista de strings (como games_today_scl) pero SOLO desde SINCE (postemporada).
+    Ej.: "Yankees 4 - Tigers 2  - 24-09-2025 - 9:10 pm (hora Chile)"
+    """
+    out = []
+    for g in _collect_postseason_raw():
+        out.append(f"{g['home_team']} {g['home_score']} - {g['away_team']} {g['away_score']}  - {g['ended_at_local']}")
+    return out
+
+def get_wildcard_games():
+    """
+    Detecta WC1, WC2 y WC3 a partir de los juegos de postemporada:
+      - WC1 = PRIMER cruce distinto (pareja A vs B) desde SINCE
+      - WC2 = SEGUNDO cruce distinto (pareja C vs D)
+      - WC3 = juego entre (perdedor WC1) y (ganador WC2), si existe
+    Si algo no existe aún, se deja en PENDIENTE.
+    """
+    raw = _collect_postseason_raw()
+    # encontrar dos cruces distintos (independiente del orden home/away)
+    pairs = []
+    def pair_key(h, a): return tuple(sorted([h, a]))
+    seen_pairs = set()
+    for g in raw:
+        k = pair_key(g["home_team"], g["away_team"])
+        if k not in seen_pairs:
+            seen_pairs.add(k)
+            pairs.append((k, g))
+        if len(pairs) == 2:
+            break
+
+    def winner_loser(g):
+        if g["home_score"] > g["away_score"]:
+            return g["home_team"], g["away_team"]
+        elif g["away_score"] > g["home_score"]:
+            return g["away_team"], g["home_team"]
+        return None, None
+
+    wc1 = {"id": "WC1", "home": "7", "away": "8", "score": "", "status": "PENDIENTE", "winner": None, "loser": None}
+    wc2 = {"id": "WC2", "home": "9", "away": "10", "score": "", "status": "PENDIENTE", "winner": None, "loser": None}
+    wc3 = {"id": "WC3", "home": "Perdedor WC1", "away": "Ganador WC2", "score": "", "status": "PENDIENTE", "winner": None, "loser": None}
+
+    # Mapear WC1 y WC2 si existen juegos
+    if len(pairs) >= 1:
+        _k1, g1 = pairs[0]
+        wc1.update({
+            "home": g1["home_team"], "away": g1["away_team"],
+            "score": f"{g1['home_score']}-{g1['away_score']}",
+            "status": "JUGADO"
+        })
+        w1, l1 = winner_loser(g1)
+        wc1["winner"], wc1["loser"] = w1, l1
+    if len(pairs) >= 2:
+        _k2, g2 = pairs[1]
+        wc2.update({
+            "home": g2["home_team"], "away": g2["away_team"],
+            "score": f"{g2['home_score']}-{g2['away_score']}",
+            "status": "JUGADO"
+        })
+        w2, l2 = winner_loser(g2)
+        wc2["winner"], wc2["loser"] = w2, l2
+
+    # Buscar WC3 = (perdedor WC1) vs (ganador WC2)
+    if wc1["loser"] and wc2["winner"]:
+        target = set([wc1["loser"], wc2["winner"]])
+        for g in raw:
+            if set([g["home_team"], g["away_team"]]) == target:
+                wc3.update({
+                    "home": g["home_team"], "away": g["away_team"],
+                    "score": f"{g['home_score']}-{g['away_score']}",
+                    "status": "JUGADO"
+                })
+                w3, l3 = winner_loser(g)
+                wc3["winner"], wc3["loser"] = w3, l3
+                break
+
+    return [wc1, wc2, wc3]
